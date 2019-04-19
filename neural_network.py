@@ -46,7 +46,7 @@ def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_cl
         #l/=(x_train.shape[0]//200)
         losses.append(l)
         print(e,l)
-        exit()
+        #exit()
 
     w1 = model['w1']
     w2 = model['w2']
@@ -149,7 +149,6 @@ def four_nn(x_train, y_train, model, lr):
 """
 def affine_forward(A, W, b):
     Z = np.dot(A, W) + b
-    print(A.shape, W.shape, Z.shape)
     cache = {}
     cache['A'] = A
     cache['W'] = W
