@@ -41,7 +41,7 @@ def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_cl
         for i in range(x_train.shape[0]//200):
             X, y = x_train[i*200:(i+1)*200], y_train[i*200:(i+1)*200]
             y = np.reshape(y, (y.shape[0],1))
-            loss, model = four_nn(X, y, model, 0.1)
+            loss, model = four_nn(X, y, model, 0.1, False)
             l+=loss
         #l/=(x_train.shape[0]//200)
         losses.append(l)
@@ -77,8 +77,45 @@ def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_cl
 """
 def test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes):
 
-    avg_class_rate = 0.0
-    class_rate_per_class = [0.0] * num_classes
+    model = {}
+    model['w1'] = w1
+    model['w2'] = w2
+    model['w3'] = w3
+    model['w4'] = w4
+
+    model['b1'] = b1
+    model['b2'] = b2
+    model['b3'] = b3
+    model['b4'] = b4
+
+    classifications = four_nn(x_test, y_test, model, 0, True)
+
+    total_correct = 0
+    num_samples, num_classified_correctly = np.zeros((num_classes, 1)), np.zeros((num_classes, 1))
+    avg_accuracy = 0
+    conf_matrix = np.zeros((num_classes, num_classes))
+    for n in range(x_test.shape[0]):
+        y = y_test[n]
+        x = x_test[n][:]
+        y_pred = classifications[n]
+        #x = np.reshape(x, (x.shape[0],1))
+        #dot = np.dot(W, x)
+        #print(dot)
+        #y_pred = np.argmax(dot)
+        num_samples[y]+=1
+        conf_matrix[y][y_pred]+=1
+        if (y_pred == y):
+            total_correct += 1
+            num_classified_correctly[y] += 1
+    avg_classification_rate = total_correct/np.float(len(x_test))
+    avg_class_classification_rate = num_classified_correctly/num_samples
+    print("Avg Classification Rate", total_correct/np.float(len(x_test) ) )
+    print("Avg Class Classification Rate", avg_class_classification_rate )
+    print(conf_matrix)
+
+    avg_class_rate = avg_class_classification_rate
+    class_rate_per_class = avg_class_classification_rate
+    #class_rate_per_class = [0.0] * num_classes
     return avg_class_rate, class_rate_per_class
 
 """
@@ -87,7 +124,7 @@ def test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes):
     Up to you on how to implement this, won't be unit tested
     Should call helper functions below
 """
-def four_nn(x_train, y_train, model, lr):
+def four_nn(x_train, y_train, model, lr, test=False):
     w1 = model['w1']
     w2 = model['w2']
     w3 = model['w3']
@@ -97,8 +134,7 @@ def four_nn(x_train, y_train, model, lr):
     b2 = model['b2']
     b3 = model['b3']
     b4 = model['b4']
-
-
+    
     z1, acache1 = affine_forward(x_train, w1, b1)
     a1, rcache1 = relu_forward(z1)
 
@@ -110,10 +146,12 @@ def four_nn(x_train, y_train, model, lr):
 
     F, acache4 = affine_forward(a3, w4, b4)
 
+    if test:
+        classifications = np.argmax(F, axis=1)
+        return classifications
+
     loss, dF = cross_entropy(F, y_train)
-    # if np.isnan(dF).any():
-    #     print(F)
-    #     exit()
+    
 
     dA3, dW4, db4 = affine_backward(dF, acache4)
     dZ3 = relu_backward(dA3, rcache3)
@@ -134,7 +172,7 @@ def four_nn(x_train, y_train, model, lr):
     model['b1'] -= (db1*lr)
     model['b2'] -= (db2*lr)
     model['b3'] -= (db3*lr)
-    model['b4'] -= (db4*lr)
+    model['b4'] -= (db4*lr)    
 
     return loss, model
 
@@ -171,11 +209,12 @@ def relu_forward(Z):
 
 def relu_backward(dA, cache):
     Z = cache['Z']
-    dZ = np.copy(dA)
+    dZ = np.array(dA, copy = True)
     dZ[Z <= 0] = 0
     return dZ
 
 def cross_entropy(F, y):
+    y = np.reshape(y, (y.shape[0],1))
     loss = 0
     all_classes = np.sum(np.exp(F),axis = 1)
     all_classes = np.reshape(all_classes, (all_classes.shape[0],1))
@@ -183,13 +222,16 @@ def cross_entropy(F, y):
     temp = np.log(all_classes)
     y = y.astype(int)
     for i, row in enumerate(F):
-        loss += (row[y[i]] - temp[i])
+        loss += (row[y[i]] - temp[i])[0]
+    
     loss/=(-F.shape[0])
-
+    
     dF = np.zeros(F.shape)
     one_hot = np.zeros(F.shape)
-    one_hot[np.arange(10), y] = 1
 
+    y = y.ravel()
+    one_hot[np.arange(one_hot.shape[0]), y] = 1
+    
     dF = one_hot - (np.exp(F)/all_classes)
     dF/=(-F.shape[0])
-    return loss[0], dF
+    return loss, dF
