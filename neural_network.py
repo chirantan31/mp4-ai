@@ -1,5 +1,10 @@
 import numpy as np
 
+def unison_shuffled_copies(a, b):
+    assert len(a) == len(b)
+    p = np.random.permutation(len(a))
+    return a[p], b[p]
+
 """
     Minigratch Gradient Descent Function to train model
     1. Format the data
@@ -37,17 +42,15 @@ def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_cl
     for e in range(epoch):
         l = 0
         if shuffle:
-            pass
+            x_train, y_train = unison_shuffled_copies(x_train, y_train)
         for i in range(x_train.shape[0]//200):
             X, y = x_train[i*200:(i+1)*200], y_train[i*200:(i+1)*200]
             y = np.reshape(y, (y.shape[0],1))
             loss, model = four_nn(X, y, model, 0.1, False)
             l+=loss
-        #l/=(x_train.shape[0]//200)
         losses.append(l)
         print(e,l)
-        #exit()
-
+        
     w1 = model['w1']
     w2 = model['w2']
     w3 = model['w3']
@@ -98,10 +101,6 @@ def test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes):
         y = y_test[n]
         x = x_test[n][:]
         y_pred = classifications[n]
-        #x = np.reshape(x, (x.shape[0],1))
-        #dot = np.dot(W, x)
-        #print(dot)
-        #y_pred = np.argmax(dot)
         num_samples[y]+=1
         conf_matrix[y][y_pred]+=1
         if (y_pred == y):
@@ -115,7 +114,6 @@ def test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes):
 
     avg_class_rate = avg_class_classification_rate
     class_rate_per_class = avg_class_classification_rate
-    #class_rate_per_class = [0.0] * num_classes
     return avg_class_rate, class_rate_per_class
 
 """
@@ -214,22 +212,25 @@ def relu_backward(dA, cache):
     return dZ
 
 def cross_entropy(F, y):
-    y = np.reshape(y, (y.shape[0],1))
+    
     loss = 0
     all_classes = np.sum(np.exp(F),axis = 1)
     all_classes = np.reshape(all_classes, (all_classes.shape[0],1))
     
     temp = np.log(all_classes)
+    temp = temp.ravel()
     y = y.astype(int)
-    for i, row in enumerate(F):
-        loss += (row[y[i]] - temp[i])[0]
+    y = y.ravel()
     
+    sel = F[np.arange(F.shape[0]), y]
+    L = sel - temp
+    loss = np.sum(L)
+
     loss/=(-F.shape[0])
     
     dF = np.zeros(F.shape)
     one_hot = np.zeros(F.shape)
-
-    y = y.ravel()
+    
     one_hot[np.arange(one_hot.shape[0]), y] = 1
     
     dF = one_hot - (np.exp(F)/all_classes)
