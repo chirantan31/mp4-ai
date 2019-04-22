@@ -95,26 +95,18 @@ def test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes):
 
     total_correct = 0
     num_samples, num_classified_correctly = np.zeros((num_classes, 1)), np.zeros((num_classes, 1))
-    avg_accuracy = 0
-    conf_matrix = np.zeros((num_classes, num_classes))
     for n in range(x_test.shape[0]):
         y = y_test[n]
         x = x_test[n][:]
         y_pred = classifications[n]
         num_samples[y]+=1
-        conf_matrix[y][y_pred]+=1
         if (y_pred == y):
             total_correct += 1
             num_classified_correctly[y] += 1
     avg_classification_rate = total_correct/np.float(len(x_test))
     avg_class_classification_rate = num_classified_correctly/num_samples
-    print("Avg Classification Rate", total_correct/np.float(len(x_test) ) )
-    print("Avg Class Classification Rate", avg_class_classification_rate )
-    print(conf_matrix)
-
-    avg_class_rate = avg_class_classification_rate
-    class_rate_per_class = avg_class_classification_rate
-    return avg_class_rate, class_rate_per_class
+    
+    return avg_classification_rate, avg_class_classification_rate
 
 """
     4 Layer Neural Network
